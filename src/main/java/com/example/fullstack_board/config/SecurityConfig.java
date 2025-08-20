@@ -23,12 +23,16 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/health",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/h2-console/**"
                         ).permitAll()
                         // 지금은 개발 단계라 전부 열어두고,
                         // 추후 JWT 도입하면 anyRequest().authenticated()로 바꿈
                         .anyRequest().permitAll()
                 )
+
+                // H2 콘솔이 frame을 쓰므로 sameOrigin 허용
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
                 // 폼 로그인/HTTP Basic 비활성화 (로그인 페이지 없앰)
                 .formLogin(form -> form.disable())
