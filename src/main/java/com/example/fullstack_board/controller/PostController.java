@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -63,4 +64,14 @@ public class PostController {
     public void delete(@PathVariable Long id) {
         postService.delete(id);
     }
+
+    @Operation(summary = "게시글 키워드 검색")
+    @GetMapping("/search")
+    public CommonPageResponse<PostResponse> search(
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10, sort = "createdAt", direction = DESC) Pageable pageable
+    ) {
+        return postService.searchByKeyword(keyword, pageable);
+    }
+
 }

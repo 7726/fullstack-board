@@ -105,6 +105,27 @@ public class PostService {
     @Transactional(readOnly = true)
     public CommonPageResponse<PostResponse> getPaged(Pageable pageable) {
         Page<Post> page = postRepository.findAll(pageable);
+
+        List<PostResponse> rows = page.getContent().stream()
+                .map(this::toResponse)
+                .toList();
+
+        PageMetaResponse meta = new PageMetaResponse(
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
+        return new CommonPageResponse<>(rows, meta);
+    }
+
+    // 게시글 키워드 검색
+    @Transactional(readOnly = true)
+    public CommonPageResponse<PostResponse> searchByKeyword(String keyword, Pageable pageable) {
+        Page<Post> page = postRepository.searchByKeyword(keyword, pageable);
+
         List<PostResponse> rows = page.getContent().stream()
                 .map(this::toResponse)
                 .toList();
