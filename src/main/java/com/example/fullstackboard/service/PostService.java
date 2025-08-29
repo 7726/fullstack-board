@@ -50,6 +50,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponse> getAll() {
         return postRepository.findAll().stream()
+                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
     }
@@ -60,36 +61,40 @@ public class PostService {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
+        if (p.isDeleted()) throw new IllegalArgumentException("삭제된 게시글은 수정할 수 없습니다.");
+
         boolean nothingToUpdate = (req.title() == null || req.title().isBlank())
                 && (req.content() == null || req.content().isBlank());
         if (nothingToUpdate) {
             throw new IllegalArgumentException("수정할 값이 없습니다.");
         }
 
-        if (req.title() != null && !req.title().isBlank()) {
-            p = Post.builder()
-                    .id(p.getId())
-                    .title(req.title())
-                    .content(p.getContent())
-                    .member(p.getMember())
-                    .createdAt(p.getCreatedAt())
-                    .build();
-            // 엔티티를 불변으로 두고 싶을 때 빌더 재생성 방식을 쓰기도 하지만,
-            // 지금은 간단히 필드 세터 없이 빌더-재생성 패턴을 보여줌
-            // 실무에선 setter or 별도 update 메서드로 처리하는 패턴도 흔함.
-            // (아래 간단 버전으로 다시 할당)
-            p = postRepository.save(p);
-        }
-        if (req.content() != null && !req.content().isBlank()) {
-            p = Post.builder()
-                    .id(p.getId())
-                    .title((p.getTitle()))
-                    .content(req.content())
-                    .member(p.getMember())
-                    .createdAt(p.getCreatedAt())
-                    .build();
-            p = postRepository.save(p);
-        }
+        // if (req.title() != null && !req.title().isBlank()) {
+        //     p = Post.builder()
+        //             .id(p.getId())
+        //             .title(req.title())
+        //             .content(p.getContent())
+        //             .member(p.getMember())
+        //             .createdAt(p.getCreatedAt())
+        //             .build();
+        //     // 엔티티를 불변으로 두고 싶을 때 빌더 재생성 방식을 쓰기도 하지만,
+        //     // 지금은 간단히 필드 세터 없이 빌더-재생성 패턴을 보여줌
+        //     // 실무에선 setter or 별도 update 메서드로 처리하는 패턴도 흔함.
+        //     // (아래 간단 버전으로 다시 할당)
+        //     p = postRepository.save(p);
+        // }
+        // if (req.content() != null && !req.content().isBlank()) {
+        //     p = Post.builder()
+        //             .id(p.getId())
+        //             .title((p.getTitle()))
+        //             .content(req.content())
+        //             .member(p.getMember())
+        //             .createdAt(p.getCreatedAt())
+        //             .build();
+        //     p = postRepository.save(p);
+        // }
+
+        p.update(req.title(), req.content());
 
         return toResponse(p);
     }
@@ -99,7 +104,12 @@ public class PostService {
     public void delete(Long id) {
         Post p = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-        postRepository.delete(p);  // soft delete로 바꿀 예정
+
+        // postRepository.delete(p);  // soft delete로 바꿀 예정
+
+        if (p.isDeleted()) return;
+
+        p.softDelete();
     }
 
     // 페이징/정렬
@@ -108,14 +118,17 @@ public class PostService {
         Page<Post> page = postRepository.findAll(pageable);
 
         List<PostResponse> rows = page.getContent().stream()
+                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
         PageMetaResponse meta = new PageMetaResponse(
                 page.getNumber(),
                 page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
+                // page.getTotalElements(),
+                rows.size(),
+                // page.getTotalPages(),
+                1,
                 page.isFirst(),
                 page.isLast()
         );
@@ -128,6 +141,7 @@ public class PostService {
         Page<Post> page = postRepository.searchByKeyword(keyword, pageable);
 
         List<PostResponse> rows = page.getContent().stream()
+                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
@@ -155,13 +169,19 @@ public class PostService {
         );
 
         List<PostResponse> data = page.getContent().stream()
+                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
         PageMetaResponse meta = new PageMetaResponse(
-                page.getNumber(), page.getSize(),
-                page.getTotalElements(), page.getTotalPages(),
-                page.isFirst(), page.isLast()
+                page.getNumber(),
+                page.getSize(),
+                // page.getTotalElements(),
+                data.size(),
+                // page.getTotalPages(),
+                1,
+                page.isFirst(),
+                page.isLast()
         );
         return new CommonPageResponse<>(data, meta);
     }

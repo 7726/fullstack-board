@@ -27,6 +27,8 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 ? post.title.containsIgnoreCase(keyword)
                 : null;
 
+        condition.and(post.isDeleted.isFalse());
+
         List<Post> results = queryFactory
                 .selectFrom(post)
                 .where(condition)
@@ -68,6 +70,8 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         if (endDateTime != null) {
             where.and(post.createdAt.loe(endDateTime));
         }
+
+        where.and(post.isDeleted.isFalse());
 
         List<Post> rows = queryFactory
                 .selectFrom(post)
