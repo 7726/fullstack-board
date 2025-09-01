@@ -128,10 +128,8 @@ public class PostService {
         PageMetaResponse meta = new PageMetaResponse(
                 page.getNumber(),
                 page.getSize(),
-                // page.getTotalElements(),
-                rows.size(),
-                // page.getTotalPages(),
-                1,
+                page.getTotalElements(),
+                page.getTotalPages(),
                 page.isFirst(),
                 page.isLast()
         );
@@ -179,10 +177,8 @@ public class PostService {
         PageMetaResponse meta = new PageMetaResponse(
                 page.getNumber(),
                 page.getSize(),
-                // page.getTotalElements(),
-                data.size(),
-                // page.getTotalPages(),
-                1,
+                page.getTotalElements(),
+                page.getTotalPages(),
                 page.isFirst(),
                 page.isLast()
         );
