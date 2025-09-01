@@ -121,7 +121,6 @@ public class PostService {
         Page<Post> page = postRepository.findAll(pageable);
 
         List<PostResponse> rows = page.getContent().stream()
-                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
@@ -142,7 +141,6 @@ public class PostService {
         Page<Post> page = postRepository.searchByKeyword(keyword, pageable);
 
         List<PostResponse> rows = page.getContent().stream()
-                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
@@ -170,7 +168,6 @@ public class PostService {
         );
 
         List<PostResponse> data = page.getContent().stream()
-                .filter(p -> !p.isDeleted())
                 .map(this::toResponse)
                 .toList();
 
