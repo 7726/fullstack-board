@@ -3,9 +3,12 @@ package com.example.fullstackboard.service;
 import com.example.fullstackboard.domain.Member;
 import com.example.fullstackboard.domain.Post;
 import com.example.fullstackboard.dto.*;
+import com.example.fullstackboard.exception.BadRequestException;
+import com.example.fullstackboard.exception.NotFoundException;
 import com.example.fullstackboard.repository.MemberRepository;
 import com.example.fullstackboard.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,7 @@ public class PostService {
     public PostResponse create(PostRequest req) {
         // 작성자 조회
         Member author = memberRepository.findById(req.memberId())
-                .orElseThrow(() -> new IllegalArgumentException("작성자가 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("작성자가 존재하지 않습니다."));
 
         Post saved = postRepository.save(
                 Post.builder()
@@ -38,15 +41,19 @@ public class PostService {
         return toResponse(saved);
     }
 
+    // 조회 공통 람다(중복 제거) - 선택
+    private Post getActivePostOrThrow(Long id) {
+        Post p = postRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        if (p.isDeleted()) throw new BadRequestException("삭제된 게시글입니다.");
+
+        return p;
+    }
+
     // 게시글 단건 조회
     @Transactional(readOnly = true)
     public PostResponse getById(Long id) {
-        Post p = postRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        if (p.isDeleted()) throw new IllegalArgumentException("삭제된 게시글입니다.");
-
-        return toResponse(p);
+        return toResponse(getActivePostOrThrow(id));
     }
 
     // 게시글 전체 조회
@@ -61,41 +68,13 @@ public class PostService {
     // 게시글 수정
     @Transactional
     public PostResponse update(Long id, PostUpdateRequest req) {
-        Post p = postRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        if (p.isDeleted()) throw new IllegalArgumentException("삭제된 게시글은 수정할 수 없습니다.");
-
         boolean nothingToUpdate = (req.title() == null || req.title().isBlank())
                 && (req.content() == null || req.content().isBlank());
         if (nothingToUpdate) {
-            throw new IllegalArgumentException("수정할 값이 없습니다.");
+            throw new BadRequestException("수정할 값이 없습니다.");
         }
 
-        // if (req.title() != null && !req.title().isBlank()) {
-        //     p = Post.builder()
-        //             .id(p.getId())
-        //             .title(req.title())
-        //             .content(p.getContent())
-        //             .member(p.getMember())
-        //             .createdAt(p.getCreatedAt())
-        //             .build();
-        //     // 엔티티를 불변으로 두고 싶을 때 빌더 재생성 방식을 쓰기도 하지만,
-        //     // 지금은 간단히 필드 세터 없이 빌더-재생성 패턴을 보여줌
-        //     // 실무에선 setter or 별도 update 메서드로 처리하는 패턴도 흔함.
-        //     // (아래 간단 버전으로 다시 할당)
-        //     p = postRepository.save(p);
-        // }
-        // if (req.content() != null && !req.content().isBlank()) {
-        //     p = Post.builder()
-        //             .id(p.getId())
-        //             .title((p.getTitle()))
-        //             .content(req.content())
-        //             .member(p.getMember())
-        //             .createdAt(p.getCreatedAt())
-        //             .build();
-        //     p = postRepository.save(p);
-        // }
+        Post p = getActivePostOrThrow(id);
 
         p.update(req.title(), req.content());
 
@@ -106,13 +85,8 @@ public class PostService {
     @Transactional
     public void delete(Long id) {
         Post p = postRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-
-        // postRepository.delete(p);  // soft delete로 바꿀 예정
-
-        if (p.isDeleted()) return;
-
-        p.softDelete();
+                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
+        if (!p.isDeleted()) p.softDelete();
     }
 
     // 페이징/정렬
@@ -132,7 +106,7 @@ public class PostService {
                 page.isFirst(),
                 page.isLast()
         );
-        return new CommonPageResponse<>(rows, meta);
+        return PageResponse.of(page, this::toResponse);
     }
 
     // 게시글 키워드 검색
@@ -152,7 +126,7 @@ public class PostService {
                 page.isFirst(),
                 page.isLast()
         );
-        return new CommonPageResponse<>(rows, meta);
+        return PageResponse.of(page, this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -179,7 +153,7 @@ public class PostService {
                 page.isFirst(),
                 page.isLast()
         );
-        return new CommonPageResponse<>(data, meta);
+        return PageResponse.of(page, this::toResponse);
     }
 
     private PostResponse toResponse(Post p) {
