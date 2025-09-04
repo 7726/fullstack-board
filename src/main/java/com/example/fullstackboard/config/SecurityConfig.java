@@ -1,14 +1,29 @@
 package com.example.fullstackboard.config;
 
+import com.example.fullstackboard.config.jwt.JwtAuthenticationFilter;
+import com.example.fullstackboard.config.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();  // 기본 strength=10
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -21,22 +36,23 @@ public class SecurityConfig {
                 // 접속 허용 범위
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/auth/login",
                                 "/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/h2-console/**"
                         ).permitAll()
-                        // 지금은 개발 단계라 전부 열어두고,
-                        // 추후 JWT 도입하면 anyRequest().authenticated()로 바꿈
-                        .anyRequest().permitAll()
+                        .requestMatchers(HttpMethod.POST, "members").permitAll()  // 기존 회원가입 API 유지
+                        .anyRequest().authenticated()
                 )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
-                // H2 콘솔이 frame을 쓰므로 sameOrigin 허용
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+        // H2 콘솔이 frame을 쓰므로 sameOrigin 허용
+        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
-                // 폼 로그인/HTTP Basic 비활성화 (로그인 페이지 없앰)
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable());
+        // 폼 로그인/HTTP Basic 비활성화 (로그인 페이지 없앰)
+        .formLogin(form -> form.disable())
+        .httpBasic(basic -> basic.disable());
 
         return http.build();
     }

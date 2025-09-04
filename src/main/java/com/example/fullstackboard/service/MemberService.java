@@ -7,6 +7,7 @@ import com.example.fullstackboard.dto.MemberResponse;
 import com.example.fullstackboard.exception.BadRequestException;
 import com.example.fullstackboard.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public MemberResponse register(MemberRequest request) {
@@ -25,11 +27,13 @@ public class MemberService {
 
         Role role = request.role() == null ? Role.USER : request.role();
 
-        // 비밀번호는 추후 BCrypt로 암호화 예정 (3단계 내용 재활용)
+        // 평문 비밀번호를 해시로 변환해서 저장
+        String encoded = passwordEncoder.encode(request.password());
+
         Member saved = memberRepository.save(
                 Member.builder()
                         .email(request.email())
-                        .password(request.password())
+                        .password(encoded)
                         .role(role)
                         .build()
         );
