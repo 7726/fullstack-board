@@ -42,7 +42,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/h2-console/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "members").permitAll()  // 기존 회원가입 API 유지
+                        .requestMatchers(HttpMethod.POST, "members").permitAll()  // 회원가입 허용
+                        .requestMatchers("/members/**").hasRole("ADMIN")
+                        .requestMatchers("/posts/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);

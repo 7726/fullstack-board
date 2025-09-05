@@ -1,10 +1,12 @@
 package com.example.fullstackboard.config.jwt;
 
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
@@ -12,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 // 요청마다 토큰 확인
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -37,10 +40,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtTokenProvider.validateToken(token)) {
                 String email = jwtTokenProvider.getEmail(token);
+                String role = jwtTokenProvider.getRole(token);
+
+                // ROLE_ prefix 필요 (Spring Security 규칙)
+                var authorities = (role == null)
+                        ? List.<SimpleGrantedAuthority>of()
+                        : List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
                 // 간단하게 email만 principal로 저장 (role도 넣을 수 있음)
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+                var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // 현재 요청을 "인증된 상태"로 표시

@@ -19,7 +19,7 @@ public class JwtTokenProvider {
 
     private final long validityInMs = 1000L * 60 * 60;  // 1시간
 
-    // 토큰 생성
+    // 토큰 생성: email(subject) + role 클레임 저장
     public String createToken(String email, String role) {
         Claims claims = Jwts.claims().setSubject(email);  // subject에 email 저장
         claims.put("role", role);  // role 정보도 저장
@@ -35,14 +35,22 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 토큰에서 email 꺼내기
-    public String getEmail(String token) {
+    private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
+                .setSigningKey(secretKey)  // secretKey는 외부로 내보내지 않음
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
+    }
+
+    // 토큰에서 email 꺼내기
+    public String getEmail(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    public String getRole(String token) {
+        Object r = parseClaims(token).get("role");
+        return r == null ? null : r.toString();
     }
 
     // 토큰 유효성 검증
