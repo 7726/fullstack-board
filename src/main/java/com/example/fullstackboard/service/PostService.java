@@ -67,14 +67,18 @@ public class PostService {
 
     // 게시글 수정
     @Transactional
-    public PostResponse update(Long id, PostUpdateRequest req) {
-        boolean nothingToUpdate = (req.title() == null || req.title().isBlank())
-                && (req.content() == null || req.content().isBlank());
-        if (nothingToUpdate) {
-            throw new BadRequestException("수정할 값이 없습니다.");
+    public PostResponse update(Long id, PostUpdateRequest req, String currentEmail) {
+        Post p = getActivePostOrThrow(id);
+
+        // 작성자 본인인지 확인
+        if (!p.getMember().getEmail().equals(currentEmail)) {
+            throw new BadRequestException("본인 글만 수정할 수 있습니다.");
         }
 
-        Post p = getActivePostOrThrow(id);
+        if ((req.title() == null || req.title().isBlank())
+                && (req.content() == null || req.content().isBlank())) {
+            throw new BadRequestException("수정할 값이 없습니다.");
+        }
 
         p.update(req.title(), req.content());
 
@@ -83,10 +87,18 @@ public class PostService {
 
     // 삭제
     @Transactional
-    public void delete(Long id) {
-        Post p = postRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("게시글이 존재하지 않습니다."));
-        if (!p.isDeleted()) p.softDelete();
+    public void delete(Long id, String currentEmail) {
+        Post p = getActivePostOrThrow(id);
+
+        if (!p.getMember().getEmail().equals(currentEmail)) {
+            throw new BadRequestException("본인 글만 삭제할 수 있습니다.");
+        }
+
+        if (!p.isDeleted()) {
+            throw new NotFoundException("게시글이 존재하지 않습니다.");
+        }
+
+        p.softDelete();
     }
 
     // 페이징/정렬

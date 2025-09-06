@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -57,15 +58,21 @@ public class PostController {
 
     @Operation(summary = "게시글 수정")
     @PatchMapping("/{id}")
-    public PostResponse update(@PathVariable Long id, @RequestBody PostUpdateRequest request) {
-        return postService.update(id, request);
+    public PostResponse update(@PathVariable Long id,
+                               @RequestBody PostUpdateRequest request,
+                               Authentication auth) {
+        // 현재 로그인한 사용자 이메일 꺼내기
+        String currentEmail = (String) auth.getPrincipal();
+        return postService.update(id, request, currentEmail);
     }
 
     @Operation(summary = "게시글 삭제")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        postService.delete(id);
+    public void delete(@PathVariable Long id,
+                       Authentication auth) {
+        String currentEmail = (String) auth.getPrincipal();
+        postService.delete(id, currentEmail);
     }
 
     @Operation(summary = "게시글 키워드 검색")
