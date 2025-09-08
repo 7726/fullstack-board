@@ -5,6 +5,7 @@ import com.example.fullstackboard.domain.Role;
 import com.example.fullstackboard.dto.MemberRequest;
 import com.example.fullstackboard.dto.MemberResponse;
 import com.example.fullstackboard.exception.BadRequestException;
+import com.example.fullstackboard.exception.NotFoundException;
 import com.example.fullstackboard.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,6 +46,19 @@ public class MemberService {
         Member m = memberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
         return toResponse(m);
+    }
+
+    @Transactional(readOnly = true)
+    public MemberResponse getMe(String email) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("회원이 존재하지 않습니다."));
+        return toResponse(member);
+    }
+
+    // 공통 메서드
+    private Member findByIdOrThrow(Long id) {
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("회원이 존재하지 않습니다."));
     }
 
     private MemberResponse toResponse(Member m) {

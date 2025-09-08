@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,5 +28,11 @@ public class MemberController {
     @GetMapping("/{id}")
     public MemberResponse getById(@PathVariable Long id) {
         return memberService.getById(id);
+    }
+
+    @GetMapping("/me")
+    public MemberResponse getMe(Authentication auth) {
+        String currentEmail = (String) auth.getPrincipal();  // 현재 로그인한 사용자의 이메일
+        return memberService.getMe(currentEmail);
     }
 }

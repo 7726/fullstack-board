@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 "/h2-console/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "members").permitAll()  // 회원가입 허용
+                        .requestMatchers("/members/me").authenticated()  // 구체적인 규칙을 먼저 (일반 유저 접근 가능)
                         .requestMatchers("/members/**").hasRole("ADMIN")
                         .requestMatchers("/posts/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
