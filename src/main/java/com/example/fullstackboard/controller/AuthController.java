@@ -4,6 +4,10 @@ import com.example.fullstackboard.config.jwt.JwtTokenProvider;
 import com.example.fullstackboard.domain.Member;
 import com.example.fullstackboard.exception.BadRequestException;
 import com.example.fullstackboard.repository.MemberRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +28,9 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
+    @Operation(summary = "로그인", description = "JWT 토큰 발급")
+    @ApiResponse(responseCode = "200", description = "로그인 성공",
+        content = @Content(schema = @Schema(example = "{ \"token\": \"eyJhbGciOiJI...\" }")))
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> req) {
         String email = req.get("email");
